@@ -43,6 +43,6 @@ public class CodeMsg {
     /**
      * 秒杀模块，5005XX
      */
-    
+
 
 }
