@@ -29,7 +29,7 @@ public class SampleTestController {
     @GetMapping("/db/getById")
     @ResponseBody
     public Result<User> dbGet(){
-        User user = userService.getById(1);
+        User user = userService.getById(1L);
         return Result.success(user);
     }
 
@@ -44,8 +44,8 @@ public class SampleTestController {
     @ResponseBody
     public Result<Boolean> redisSet(){
         User user = new User();
-        user.setId(1);
-        user.setName("1111");
+        user.setId(1L);
+        user.setNickname("1111");
         boolean set = redisService.set(UserKey.getById, "" + 1, user);
         return Result.success(set);
     }

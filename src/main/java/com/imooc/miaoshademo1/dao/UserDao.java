@@ -19,6 +19,14 @@ public interface UserDao {
      * @return
      */
     @Select("select * from user where id=#{id}")
-    public User getById(@Param("id") int id);
+    User getById(@Param("id") Long id);
+
+    /**
+     * 根据name查找user表里的记录
+     * @param nickname
+     * @return
+     */
+    @Select("select * from user where nickname=#{nickname}")
+    User getByName(@Param("nickname") String nickname);
 
 }

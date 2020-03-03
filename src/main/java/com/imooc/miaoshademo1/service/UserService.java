@@ -1,6 +1,8 @@
 package com.imooc.miaoshademo1.service;
 
 import com.imooc.miaoshademo1.domain.User;
+import com.imooc.miaoshademo1.result.CodeMsg;
+import com.imooc.miaoshademo1.vo.LoginVo;
 
 /**
  * @Author w1586
@@ -15,5 +17,7 @@ public interface UserService {
      * @param id
      * @return
      */
-    public User getById(int id);
+    public User getById(Long id);
+
+    public CodeMsg login(LoginVo loginVo);
 }
