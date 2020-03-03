@@ -12,6 +12,7 @@ import org.springframework.stereotype.Controller;
 import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.*;
 
+import javax.servlet.http.HttpServletResponse;
 import javax.validation.Valid;
 
 /**
@@ -30,12 +31,12 @@ public class LoginController {
 
     @GetMapping("/to_login")
     public String toLogin(){
-        return "Login";
+        return "login";
     }
 
     @PostMapping("/do_login")
     @ResponseBody
-    public Result<Boolean> doLogin(@Valid LoginVo loginVo){
+    public Result<Boolean> doLogin(HttpServletResponse response, @Valid LoginVo loginVo){
         logger.info(loginVo.toString());
         //参数校验
 //        String passInput = loginVo.getPassword();
@@ -58,7 +59,7 @@ public class LoginController {
 //            return Result.error(codeMsg);
 //        }
 
-        userService.login(loginVo);
+        userService.login(response, loginVo);
         return Result.success(true);
 
     }

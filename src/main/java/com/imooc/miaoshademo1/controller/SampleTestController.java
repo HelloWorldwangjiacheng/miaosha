@@ -33,20 +33,20 @@ public class SampleTestController {
         return Result.success(user);
     }
 
-    @GetMapping("/redis/get")
-    @ResponseBody
-    public Result<User> redisGet(){
-        User user = redisService.get(UserKey.getById, ""+1, User.class);
-        return Result.success(user);
-    }
-
-    @GetMapping("/redis/set")
-    @ResponseBody
-    public Result<Boolean> redisSet(){
-        User user = new User();
-        user.setId(1L);
-        user.setNickname("1111");
-        boolean set = redisService.set(UserKey.getById, "" + 1, user);
-        return Result.success(set);
-    }
+//    @GetMapping("/redis/get")
+//    @ResponseBody
+//    public Result<User> redisGet(){
+//        User user = redisService.get(UserKey.getById, ""+1, User.class);
+//        return Result.success(user);
+//    }
+//
+//    @GetMapping("/redis/set")
+//    @ResponseBody
+//    public Result<Boolean> redisSet(){
+//        User user = new User();
+//        user.setId(1L);
+//        user.setNickname("1111");
+//        boolean set = redisService.set(UserKey.getById, "" + 1, user);
+//        return Result.success(set);
+//    }
 }
