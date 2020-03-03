@@ -19,5 +19,5 @@ public interface UserService {
      */
     public User getById(Long id);
 
-    public CodeMsg login(LoginVo loginVo);
+    public Boolean login(LoginVo loginVo);
 }

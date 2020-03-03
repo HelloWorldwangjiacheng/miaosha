@@ -2,6 +2,7 @@ package com.imooc.miaoshademo1.service.impl;
 
 import com.imooc.miaoshademo1.dao.UserDao;
 import com.imooc.miaoshademo1.domain.User;
+import com.imooc.miaoshademo1.exception.GlobalException;
 import com.imooc.miaoshademo1.result.CodeMsg;
 import com.imooc.miaoshademo1.service.UserService;
 import com.imooc.miaoshademo1.util.MD5Util;
@@ -22,14 +23,14 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public User getById(Long id) {
-
         return userDao.getById(id);
     }
 
     @Override
-    public CodeMsg login(LoginVo loginVo) {
+    public Boolean login(LoginVo loginVo) {
         if (loginVo == null){
-            return CodeMsg.SERVER_ERROR;
+//            return CodeMsg.SERVER_ERROR;
+            throw  new GlobalException(CodeMsg.SERVER_ERROR);
         }
 
         String mobile = loginVo.getMobile();
@@ -37,10 +38,11 @@ public class UserServiceImpl implements UserService {
 
         // 判断手机号是否存在
         Long num = Long.parseLong(mobile);
-        System.out.println("+++++++______+++++++=>"+Long.class.isInstance(num));
+//        System.out.println("+++++++______+++++++=>"+Long.class.isInstance(num));
         User user = userDao.getById(num);
         if (user == null){
-            return CodeMsg.MOBILE_NOT_EXIST;
+//            return CodeMsg.MOBILE_NOT_EXIST;
+            throw  new GlobalException(CodeMsg.MOBILE_NOT_EXIST);
         }
         
         //验证密码
@@ -49,11 +51,11 @@ public class UserServiceImpl implements UserService {
         String calcPass = MD5Util.formPassToDBPass(formPass, dbSalt);
 
         if (!dbPass.equals(calcPass)){
-            return CodeMsg.PASSWORD_ERROR;
+//            return CodeMsg.PASSWORD_ERROR;
+            throw  new GlobalException(CodeMsg.PASSWORD_ERROR);
         }
 
-
-
-        return CodeMsg.SUCCESS;
+        return true;
+//        return CodeMsg.SUCCESS;
     }
 }

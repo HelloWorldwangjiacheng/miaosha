@@ -50,13 +50,16 @@ public class LoginController {
 //            return Result.error(CodeMsg.MOBILE_ERROR);
 //        }
 
-        //登录
-        CodeMsg codeMsg = userService.login(loginVo);
-        if (codeMsg.getCode() == 0){
-            return Result.success(true);
-        }else {
-            return Result.error(codeMsg);
-        }
+        // 登录操作
+//        CodeMsg codeMsg = userService.login(loginVo);
+//        if (codeMsg.getCode() == 0){
+//            return Result.success(true);
+//        }else {
+//            return Result.error(codeMsg);
+//        }
+
+        userService.login(loginVo);
+        return Result.success(true);
 
     }
 }
