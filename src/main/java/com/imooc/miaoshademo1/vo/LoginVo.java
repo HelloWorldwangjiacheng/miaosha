@@ -1,6 +1,10 @@
 package com.imooc.miaoshademo1.vo;
 
+import com.imooc.miaoshademo1.validator.IsMobile;
 import lombok.Data;
+import org.hibernate.validator.constraints.Length;
+
+import javax.validation.constraints.NotNull;
 
 /**
  * @Author w1586
@@ -9,7 +13,12 @@ import lombok.Data;
  */
 @Data
 public class LoginVo {
+    @NotNull
+    @IsMobile
     private String mobile;
+
+    @NotNull
+    @Length(min=32)
     private String password;
 
     @Override
