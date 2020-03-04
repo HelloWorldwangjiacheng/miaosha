@@ -77,14 +77,17 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
-    public User getByToken(String token) {
+    public User getByToken(HttpServletResponse response, String token) {
         //参数验证
         if (StringUtils.isEmpty(token)){
             return null;
         }
 
         User user = redisService.get(UserKey.token, token, User.class);
-
+        // 延长有效期
+        if (user!=null){
+            addCookie(response, token, user);
+        }
         return user;
     }
 

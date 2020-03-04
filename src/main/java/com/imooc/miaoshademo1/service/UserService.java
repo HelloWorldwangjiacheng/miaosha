@@ -31,8 +31,9 @@ public interface UserService {
 
     /**
      * 通过token来找到user
+     * @param response
      * @param token
      * @return
      */
-    User getByToken(String token);
+    User getByToken(HttpServletResponse response, String token);
 }
