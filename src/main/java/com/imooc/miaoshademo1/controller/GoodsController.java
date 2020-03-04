@@ -3,7 +3,9 @@ package com.imooc.miaoshademo1.controller;
 import com.imooc.miaoshademo1.config.UserDeal;
 import com.imooc.miaoshademo1.domain.User;
 import com.imooc.miaoshademo1.redis.RedisService;
+import com.imooc.miaoshademo1.service.GoodsService;
 import com.imooc.miaoshademo1.service.UserService;
+import com.imooc.miaoshademo1.vo.GoodsVo;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -14,6 +16,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 
 import javax.servlet.http.HttpServletResponse;
+import java.util.List;
 
 /**
  * @Author w1586
@@ -30,6 +33,8 @@ public class GoodsController {
     @Autowired
     RedisService redisService;
 
+    @Autowired
+    GoodsService goodsService;
 
     @GetMapping("/to_list")
     public String toList(Model model,
@@ -44,8 +49,13 @@ public class GoodsController {
         String token = StringUtils.isEmpty(paramToken)?cookieToken:paramToken;
         User user = userService.getByToken(response, token);
 
-
         model.addAttribute("user", user);
+
+        // 查询商品列表
+        List<GoodsVo> goodsVos = goodsService.listGoodsVo();
+        model.addAttribute("goodsList",goodsVos);
+
+
         return "goods_list";
     }
 
