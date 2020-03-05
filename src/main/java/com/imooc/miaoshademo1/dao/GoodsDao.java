@@ -27,12 +27,22 @@ public interface GoodsDao {
             "on mg.goods_id = g.id")
     public List<GoodsVo> listGoodsVo();
 
+    /**
+     * 通过商品id来得到商品的详情
+     * @param goodsId
+     * @return
+     */
     @Select("select g.*,mg.stock_count, mg.start_date, mg.end_date,mg.miaosha_price " +
             "from miaosha_goods mg left join goods g " +
             "on mg.goods_id = g.id " +
             "where g.id = #{goodsId}")
-    public GoodsVo getGoodsVoByGoodsId(@Param("goodsId")long goodsId);
+    public GoodsVo getGoodsVoByGoodsId(@Param("goodsId") Long goodsId);
 
+    /**
+     * 减商品库存
+     * @param g
+     * @return
+     */
     @Update("update miaosha_goods " +
             "set stock_count = stock_count - 1 " +
             "where goods_id = #{goodsId}")
