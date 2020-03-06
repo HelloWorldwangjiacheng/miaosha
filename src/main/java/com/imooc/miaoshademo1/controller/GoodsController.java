@@ -1,6 +1,5 @@
 package com.imooc.miaoshademo1.controller;
 
-import com.imooc.miaoshademo1.config.UserDeal;
 import com.imooc.miaoshademo1.domain.User;
 import com.imooc.miaoshademo1.redis.RedisService;
 import com.imooc.miaoshademo1.service.GoodsService;

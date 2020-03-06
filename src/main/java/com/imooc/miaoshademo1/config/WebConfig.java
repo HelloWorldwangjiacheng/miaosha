@@ -19,12 +19,8 @@ public class WebConfig implements WebMvcConfigurer {
     @Autowired
     UserArgumentResolver userArgumentResolver;
 
-    @Autowired
-    UserDealArgumentResolver userDealArgumentResolver;
-
     @Override
     public void addArgumentResolvers(List<HandlerMethodArgumentResolver> resolvers) {
-        resolvers.add(userDealArgumentResolver);
         resolvers.add(userArgumentResolver);
     }
 }

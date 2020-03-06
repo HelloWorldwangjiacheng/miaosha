@@ -46,3 +46,24 @@ CREATE TABLE `miaosha_order` (
 ) ENGINE=INNODB AUTO_INCREMENT=3 DEFAULT CHARSET=utf8mb4;
 
 ```
+
+
+```text
+//查看redis服务是否启动
+ps -ef | grep redis  
+
+ //起了100个并发，100000个请求
+redis-benchmark -h 127.0.0.1 -p 6379 -c 100 -n 100000   
+
+//存取大小为100字节的数据包
+redis-benchmark -h 127.0.0.1 -p 6379 -q -d 100   
+
+//只测试某些操作的性能
+redis-benchmark -t set,lpush -q -n 100000 
+
+//只测试某些数值存取的性能
+redis-benchmark -n 100000 -q script load "redis.call('set','foo','bar')"  
+
+
+
+```
