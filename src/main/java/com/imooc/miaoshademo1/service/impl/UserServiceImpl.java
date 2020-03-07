@@ -12,6 +12,7 @@ import com.imooc.miaoshademo1.util.UUIDUtil;
 import com.imooc.miaoshademo1.vo.LoginVo;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
 import javax.servlet.http.Cookie;
@@ -35,8 +36,22 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public User getById(Long id) {
-        return userDao.getById(id);
+        // 对象缓存
+        // 取缓存
+        User user = redisService.get(UserKey.getById, "" + id, User.class);
+        if (user!=null){
+            return user;
+        }
+//        return userDao.getById(id);
+        //取数据库
+        user = userDao.getById(id);
+        if (user!=null){
+            redisService.set(UserKey.getById, ""+id, User.class);
+        }
+        return user;
     }
+
+
 
     @Override
     public String login(HttpServletResponse response, LoginVo loginVo) {
@@ -85,6 +100,30 @@ public class UserServiceImpl implements UserService {
         }
         return user;
     }
+
+    @Override
+    @Transactional
+    public Boolean updatePassword(String token, Long id, String formPass) {
+        // 取User对象
+        User user = getById(id);
+        if (user == null){
+            throw new GlobalException(CodeMsg.MOBILE_NOT_EXIST);
+        }
+
+        // 更新数据库
+        User toBeUpdateUser = new User();
+        toBeUpdateUser.setId(id);
+        toBeUpdateUser.setPassword(MD5Util.formPassToDBPass(formPass, user.getSalt()));
+        userDao.update(toBeUpdateUser);
+
+        // 处理缓存
+        redisService.delete(UserKey.getById, ""+id);
+        user.setPassword(toBeUpdateUser.getPassword());
+        //这里不能删除，因为删除你就无法登录了，只能进行更新
+        redisService.set(UserKey.token, token, user);
+        return true;
+    }
+
 
     /**
      * 添加cookie

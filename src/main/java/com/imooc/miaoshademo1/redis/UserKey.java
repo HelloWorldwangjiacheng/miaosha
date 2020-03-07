@@ -17,4 +17,9 @@ public class UserKey extends BasePrefix{
 
     public static UserKey token = new UserKey(TOKEN_EXPIRE,"tk");
 
+    /**
+     * 永久有效
+     */
+    public static UserKey getById = new UserKey(0,"id");
+
 }

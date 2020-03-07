@@ -4,6 +4,7 @@ import com.imooc.miaoshademo1.domain.User;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 import org.apache.ibatis.annotations.Select;
+import org.apache.ibatis.annotations.Update;
 
 /**
  * @Author w1586
@@ -29,4 +30,10 @@ public interface UserDao {
     @Select("select * from user where nickname=#{nickname}")
     User getByName(@Param("nickname") String nickname);
 
+    /**
+     * 更新User对象
+     * @param toBeUpdateUser
+     */
+    @Update("update user set password = #{password} where id = #{id}")
+    void update(User toBeUpdateUser);
 }

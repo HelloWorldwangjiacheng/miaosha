@@ -48,7 +48,8 @@ public class GoodsController {
     ApplicationContext applicationContext;
 
     /**
-     * 没有优化前 对/to_list 2000个线程 访问10次 一共20000次 吞吐量（QPS）是960
+     * 没有优化前 对/to_list 2000个线程 访问10次 一共20000次 吞吐量（QPS）是720
+     * 页面缓存之后 同样条件 QPS是第一次960 第二次是2000
      * @param model
      * @param cookieToken
      * @param paramToken
@@ -72,11 +73,6 @@ public class GoodsController {
 
         model.addAttribute("user", user);
 
-        // 查询商品列表
-        List<GoodsVo> goodsVos = goodsService.listGoodsVo();
-        model.addAttribute("goodsList", goodsVos);
-//        return "goods_list";
-
         //页面缓存主要是为预防瞬间访问量，但其实页面缓存的时间不长只有60秒，也能做到一定程度的更新
         // 缓存时间太长，及时性就不是很好
         //取缓存
@@ -85,14 +81,19 @@ public class GoodsController {
             return html;
         }
 
+        // 查询商品列表
+        List<GoodsVo> goodsVos = goodsService.listGoodsVo();
+        model.addAttribute("goodsList", goodsVos);
+//        return "goods_list";
+
         //手动渲染
-        html = dealHtml(
-                "goods_list",
+        WebContext webContext = new WebContext(
                 request,
                 response,
                 request.getServletContext(),
                 request.getLocale(),
                 model.asMap());
+        html = thymeleafViewResolver.getTemplateEngine().process("goods_list", webContext);
         if (!StringUtils.isEmpty(html)){
             redisService.set(GoodsKey.getGoodsList, "", html);
         }
@@ -166,5 +167,5 @@ public class GoodsController {
         }
         return html;
     }
-    
+
 }

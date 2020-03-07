@@ -36,4 +36,13 @@ public interface UserService {
      * @return
      */
     User getByToken(HttpServletResponse response, String token);
+
+    /**
+     * 更新密码
+     * @param token
+     * @param id
+     * @param passwordNew
+     * @return
+     */
+    public Boolean updatePassword(String token, Long id, String passwordNew);
 }
