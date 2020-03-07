@@ -5,6 +5,8 @@ import com.imooc.miaoshademo1.dao.OrderDao;
 import com.imooc.miaoshademo1.domain.MiaoshaOrder;
 import com.imooc.miaoshademo1.domain.OrderInfo;
 import com.imooc.miaoshademo1.domain.User;
+import com.imooc.miaoshademo1.redis.OrderKey;
+import com.imooc.miaoshademo1.redis.RedisService;
 import com.imooc.miaoshademo1.vo.GoodsVo;
 import org.apache.ibatis.annotations.Param;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -24,9 +26,17 @@ public class OrderService {
     @Autowired
     OrderDao orderDao;
 
+    @Autowired
+    RedisService redisService;
+
 
     public MiaoshaOrder getOrderMiaoshaOrderByUserIdAndGoodsId(Long userId, Long goodsId){
         return orderDao.getMiaoshaOrderByUserIdGoodsId(userId, goodsId);
+//        return redisService.get(OrderKey.getMiaoshaOrderByUidGid, ""+userId+"_"+goodsId, MiaoshaOrder.class);
+    }
+
+    public OrderInfo getOrderById(long orderId) {
+        return orderDao.getOrderById(orderId);
     }
 
     @Transactional
