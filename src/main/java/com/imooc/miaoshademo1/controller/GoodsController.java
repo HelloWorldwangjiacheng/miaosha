@@ -1,18 +1,27 @@
 package com.imooc.miaoshademo1.controller;
 
 import com.imooc.miaoshademo1.domain.User;
+import com.imooc.miaoshademo1.redis.GoodsKey;
 import com.imooc.miaoshademo1.redis.RedisService;
 import com.imooc.miaoshademo1.service.GoodsService;
 import com.imooc.miaoshademo1.service.UserService;
 import com.imooc.miaoshademo1.vo.GoodsVo;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.ApplicationContext;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.*;
+import org.thymeleaf.context.IWebContext;
+import org.thymeleaf.context.WebContext;
+import org.thymeleaf.spring5.view.ThymeleafViewResolver;
 
+import javax.servlet.ServletContext;
+import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.util.List;
+import java.util.Locale;
+import java.util.Map;
 
 /**
  * @Author w1586
@@ -32,6 +41,12 @@ public class GoodsController {
     @Autowired
     GoodsService goodsService;
 
+    @Autowired
+    ThymeleafViewResolver thymeleafViewResolver;
+
+    @Autowired
+    ApplicationContext applicationContext;
+
     /**
      * 没有优化前 对/to_list 2000个线程 访问10次 一共20000次 吞吐量（QPS）是960
      * @param model
@@ -40,10 +55,12 @@ public class GoodsController {
      * @param response
      * @return
      */
-    @GetMapping("/to_list")
+    @GetMapping(value = "/to_list", produces = "text/html")
+    @ResponseBody
     public String toList(Model model,
                          @CookieValue(value = UserService.COOKIE_NAME_TOKEN, required = false) String cookieToken,
                          @RequestParam(value = UserService.COOKIE_NAME_TOKEN, required = false) String paramToken,
+                         HttpServletRequest request,
                          HttpServletResponse response
 //                         @UserDeal User user
     ) {
@@ -58,15 +75,38 @@ public class GoodsController {
         // 查询商品列表
         List<GoodsVo> goodsVos = goodsService.listGoodsVo();
         model.addAttribute("goodsList", goodsVos);
-        System.out.println("123");
-        return "goods_list";
+//        return "goods_list";
+
+        //页面缓存主要是为预防瞬间访问量，但其实页面缓存的时间不长只有60秒，也能做到一定程度的更新
+        // 缓存时间太长，及时性就不是很好
+        //取缓存
+        String html = redisService.get(GoodsKey.getGoodsList, "", String.class);
+        if (!StringUtils.isEmpty(html)){
+            return html;
+        }
+
+        //手动渲染
+        html = dealHtml(
+                "goods_list",
+                request,
+                response,
+                request.getServletContext(),
+                request.getLocale(),
+                model.asMap());
+        if (!StringUtils.isEmpty(html)){
+            redisService.set(GoodsKey.getGoodsList, "", html);
+        }
+        return html;
+
     }
 
-    @GetMapping("/to_detail/{goodsId}")
+    @GetMapping(value = "/to_detail/{goodsId}", produces = "text/html")
+    @ResponseBody
     public String toDetail(Model model,
                            @CookieValue(value = UserService.COOKIE_NAME_TOKEN, required = false) String cookieToken,
                            @RequestParam(value = UserService.COOKIE_NAME_TOKEN, required = false) String paramToken,
                            HttpServletResponse response,
+                           HttpServletRequest request,
                            @PathVariable("goodsId") Long goodsId) {
         if (StringUtils.isEmpty(cookieToken) && StringUtils.isEmpty(paramToken)) {
             return "login";
@@ -75,6 +115,8 @@ public class GoodsController {
         User user = userService.getByToken(response, token);
         // 这里可用snowflake算法进行优化
         model.addAttribute("user", user);
+
+
 
         GoodsVo goods = goodsService.getGoodsVoByGoodsId(goodsId);
         model.addAttribute("goods", goods);
@@ -103,8 +145,26 @@ public class GoodsController {
         }
         model.addAttribute("miaoshaStatus",miaoshaStatus);
         model.addAttribute("remainSeconds",remainSeconds);
-        return "goods_detail";
+//        return "goods_detail";
+
+        // 取缓存
+        String html = redisService.get(GoodsKey.getGoodsDetail, ""+goodsId, String.class);
+        if (!StringUtils.isEmpty(html)) {
+            return html;
+        }
+
+        // 手动渲染
+        WebContext webContext = new WebContext(
+                request,
+                response,
+                request.getServletContext(),
+                request.getLocale(),
+                model.asMap());
+        html = thymeleafViewResolver.getTemplateEngine().process("goods_detail", webContext);
+        if (!StringUtils.isEmpty(html)){
+            redisService.set(GoodsKey.getGoodsDetail, ""+goodsId, html);
+        }
+        return html;
     }
-
-
+    
 }
