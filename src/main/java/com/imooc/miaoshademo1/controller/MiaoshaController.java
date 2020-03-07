@@ -40,8 +40,22 @@ public class MiaoshaController {
     @Autowired
     MiaoshaService miaoshaService;
 
-    @PostMapping("/do_miaosha")
-    public String list(Model model,
+    /**
+     * 没有优化前：
+     * jmeter压迫测试 2000个用户 每个用户访问5次 一共100000次 QPS：630
+     *
+     * 优化之后：
+     *
+     * @param model
+     * @param cookieToken
+     * @param paramToken
+     * @param response
+     * @param goodsId
+     * @return
+     */
+//    @PostMapping("/do_miaosha")
+    @RequestMapping("/do_miaosha")
+    public String doMiaosha(Model model,
                        @CookieValue(value = UserService.COOKIE_NAME_TOKEN, required = false) String cookieToken,
                        @RequestParam(value = UserService.COOKIE_NAME_TOKEN, required = false) String paramToken,
                        HttpServletResponse response,
@@ -56,6 +70,7 @@ public class MiaoshaController {
         model.addAttribute("user", user);
 
         if (user == null){
+            System.out.println("SBSBSB");
             return "login";
         }
 
@@ -79,6 +94,7 @@ public class MiaoshaController {
         OrderInfo orderInfo = miaoshaService.miaosha(user, goodsVo);
         model.addAttribute("orderInfo",orderInfo);
         model.addAttribute("goods",goodsVo);
+        System.out.println("do_miaosha");
         return "order_detail";
     }
 }

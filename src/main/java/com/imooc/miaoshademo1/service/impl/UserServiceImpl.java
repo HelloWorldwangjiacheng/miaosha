@@ -30,7 +30,6 @@ public class UserServiceImpl implements UserService {
 
     @Autowired
     private UserDao userDao;
-
     @Autowired
     RedisService redisService;
 
@@ -40,7 +39,7 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
-    public Boolean login(HttpServletResponse response, LoginVo loginVo) {
+    public String login(HttpServletResponse response, LoginVo loginVo) {
         if (loginVo == null){
 //            return CodeMsg.SERVER_ERROR;
             throw  new GlobalException(CodeMsg.SERVER_ERROR);
@@ -51,13 +50,11 @@ public class UserServiceImpl implements UserService {
 
         // 判断手机号是否存在
         Long num = Long.parseLong(mobile);
-//        System.out.println("+++++++______+++++++=>"+Long.class.isInstance(num));
         User user = userDao.getById(num);
         if (user == null){
 //            return CodeMsg.MOBILE_NOT_EXIST;
             throw  new GlobalException(CodeMsg.MOBILE_NOT_EXIST);
         }
-        
         //验证密码
         String dbPass = user.getPassword();
         String dbSalt = user.getSalt();
@@ -71,8 +68,7 @@ public class UserServiceImpl implements UserService {
         // 生成cookie
         String token = UUIDUtil.uuid();
         addCookie(response, token, user);
-
-        return true;
+        return token;
 //        return CodeMsg.SUCCESS;
     }
 
@@ -82,7 +78,6 @@ public class UserServiceImpl implements UserService {
         if (StringUtils.isEmpty(token)){
             return null;
         }
-
         User user = redisService.get(UserKey.token, token, User.class);
         // 延长有效期
         if (user!=null){
@@ -90,10 +85,6 @@ public class UserServiceImpl implements UserService {
         }
         return user;
     }
-
-
-
-
 
     /**
      * 添加cookie

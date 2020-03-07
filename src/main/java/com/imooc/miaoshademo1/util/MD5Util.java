@@ -27,13 +27,14 @@ public class MD5Util {
 
     public static String inputPassToDBPass(String input, String saltDB){
         String formPass = inputPassToFormPass(input);
-        System.out.println(formPass);
+//        System.out.println(formPass);
         String dbPass = formPassToDBPass(formPass, saltDB);
         System.out.println(dbPass);
         return dbPass;
     }
 
     public static void main(String[] args){
-        System.out.println(inputPassToDBPass("123456","1a2b3c4d"));//6e0a7fe692684372437c9e508508990d
+        System.out.println(inputPassToDBPass("123456","1a2b3c4d"));
+        //6e0a7fe692684372437c9e508508990d
     }
 }

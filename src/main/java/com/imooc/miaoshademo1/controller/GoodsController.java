@@ -32,6 +32,14 @@ public class GoodsController {
     @Autowired
     GoodsService goodsService;
 
+    /**
+     * 没有优化前 对/to_list 2000个线程 访问10次 一共20000次 吞吐量（QPS）是960
+     * @param model
+     * @param cookieToken
+     * @param paramToken
+     * @param response
+     * @return
+     */
     @GetMapping("/to_list")
     public String toList(Model model,
                          @CookieValue(value = UserService.COOKIE_NAME_TOKEN, required = false) String cookieToken,
@@ -50,8 +58,7 @@ public class GoodsController {
         // 查询商品列表
         List<GoodsVo> goodsVos = goodsService.listGoodsVo();
         model.addAttribute("goodsList", goodsVos);
-
-
+        System.out.println("123");
         return "goods_list";
     }
 

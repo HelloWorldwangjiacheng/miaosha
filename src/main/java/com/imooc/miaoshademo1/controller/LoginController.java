@@ -36,7 +36,10 @@ public class LoginController {
 
     @PostMapping("/do_login")
     @ResponseBody
-    public Result<Boolean> doLogin(HttpServletResponse response, @Valid LoginVo loginVo){
+    public Result<String> doLogin(HttpServletResponse response,
+                                   @Valid LoginVo loginVo
+
+    ){
         logger.info(loginVo.toString());
         //参数校验
 //        String passInput = loginVo.getPassword();
@@ -59,8 +62,9 @@ public class LoginController {
 //            return Result.error(codeMsg);
 //        }
 
-        userService.login(response, loginVo);
-        return Result.success(true);
+        String token = userService.login(response, loginVo);
+//        return Result.success(true);
+        return Result.success(token);
 
     }
 }

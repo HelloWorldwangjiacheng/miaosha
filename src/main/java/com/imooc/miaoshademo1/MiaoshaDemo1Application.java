@@ -8,18 +8,21 @@ import org.springframework.context.annotation.ComponentScan;
 
 /**
  * @author w1586
+ * 如果要打成war包需要在MiaoshaDemo1Application 后面添加上extends SpringBootServletInitializer
+ * 以及重写某些方法
  */
 @SpringBootApplication
-//@ComponentScan(basePackages={"com.imooc.miaoshademo1.*"})
-public class MiaoshaDemo1Application extends SpringBootServletInitializer {
+@ComponentScan(basePackages={"com.imooc.miaoshademo1.*"})
+public class MiaoshaDemo1Application {
 
     public static void main(String[] args) {
         SpringApplication.run(MiaoshaDemo1Application.class, args);
     }
 
-    @Override
-    protected SpringApplicationBuilder configure(SpringApplicationBuilder builder) {
-//        return super.configure(builder);
-        return builder.sources(MiaoshaDemo1Application.class);
-    }
+//    @Override
+//    protected SpringApplicationBuilder configure(SpringApplicationBuilder builder) {
+////        return super.configure(builder);
+//        return builder.sources(MiaoshaDemo1Application.class);
+//    }
 }
+

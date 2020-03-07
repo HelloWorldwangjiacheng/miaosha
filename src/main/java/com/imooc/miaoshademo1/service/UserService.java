@@ -27,7 +27,7 @@ public interface UserService {
      * @param loginVo
      * @return
      */
-    public Boolean login(HttpServletResponse response, LoginVo loginVo);
+    public String login(HttpServletResponse response, LoginVo loginVo);
 
     /**
      * 通过token来找到user
