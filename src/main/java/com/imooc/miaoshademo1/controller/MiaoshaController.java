@@ -5,6 +5,7 @@ import com.imooc.miaoshademo1.domain.OrderInfo;
 import com.imooc.miaoshademo1.domain.User;
 import com.imooc.miaoshademo1.redis.RedisService;
 import com.imooc.miaoshademo1.result.CodeMsg;
+import com.imooc.miaoshademo1.result.Result;
 import com.imooc.miaoshademo1.service.GoodsService;
 import com.imooc.miaoshademo1.service.MiaoshaService;
 import com.imooc.miaoshademo1.service.OrderService;
@@ -46,6 +47,9 @@ public class MiaoshaController {
      *
      * 优化之后：
      *
+     * GET 和 POST有什么区别？
+     * GET幂等，向服务端拿数据   POST向服务端提交数据
+     *
      * @param model
      * @param cookieToken
      * @param paramToken
@@ -53,8 +57,7 @@ public class MiaoshaController {
      * @param goodsId
      * @return
      */
-//    @PostMapping("/do_miaosha")
-    @RequestMapping("/do_miaosha")
+    @PostMapping("/doMiaosha")
     public String doMiaosha(Model model,
                        @CookieValue(value = UserService.COOKIE_NAME_TOKEN, required = false) String cookieToken,
                        @RequestParam(value = UserService.COOKIE_NAME_TOKEN, required = false) String paramToken,
@@ -66,11 +69,9 @@ public class MiaoshaController {
         }
         String token = StringUtils.isEmpty(paramToken) ? cookieToken : paramToken;
         User user = userService.getByToken(response, token);
-
         model.addAttribute("user", user);
 
         if (user == null){
-            System.out.println("SBSBSB");
             return "login";
         }
 
@@ -96,5 +97,42 @@ public class MiaoshaController {
         model.addAttribute("goods",goodsVo);
         System.out.println("do_miaosha");
         return "order_detail";
+    }
+
+
+    @PostMapping(value="/do_miaosha")
+    @ResponseBody
+    public Result<OrderInfo> miaosha(Model model,
+                                     HttpServletResponse response,
+                                     @CookieValue(value = UserService.COOKIE_NAME_TOKEN, required = false) String cookieToken,
+                                     @RequestParam(value = UserService.COOKIE_NAME_TOKEN, required = false) String paramToken,
+                                     @RequestParam("goodsId")long goodsId)
+    {
+        if (StringUtils.isEmpty(cookieToken) && StringUtils.isEmpty(paramToken)) {
+            return Result.error(CodeMsg.SESSION_ERROR);
+        }
+        String token = StringUtils.isEmpty(paramToken) ? cookieToken : paramToken;
+        User user = userService.getByToken(response, token);
+        model.addAttribute("user", user);
+
+        if(user == null) {
+            return Result.error(CodeMsg.SESSION_ERROR);
+        }
+        //判断库存
+        GoodsVo goods = goodsService.getGoodsVoByGoodsId(goodsId);
+        //10个商品，req1 req2
+        int stock = goods.getStockCount();
+        if(stock <= 0) {
+            return Result.error(CodeMsg.MIAO_SHA_OVER);
+        }
+        //判断是否已经秒杀到了
+        MiaoshaOrder order = orderService.getOrderMiaoshaOrderByUserIdAndGoodsId(user.getId(), goodsId);
+        if(order != null) {
+            return Result.error(CodeMsg.REPEAT_MIAOSHA);
+        }
+        //减库存 下订单 写入秒杀订单
+        OrderInfo orderInfo = miaoshaService.miaosha(user, goods);
+        //把订单返回出去
+        return Result.success(orderInfo);
     }
 }
