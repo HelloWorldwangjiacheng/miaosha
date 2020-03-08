@@ -1,6 +1,7 @@
 package com.imooc.miaoshademo1.controller;
 
 import com.imooc.miaoshademo1.domain.User;
+import com.imooc.miaoshademo1.rabbitmq.MQSender;
 import com.imooc.miaoshademo1.redis.RedisService;
 import com.imooc.miaoshademo1.redis.UserKey;
 import com.imooc.miaoshademo1.result.Result;
@@ -26,6 +27,9 @@ public class SampleTestController {
     @Autowired
     private RedisService redisService;
 
+    @Autowired
+    private MQSender mqSender;
+
     @GetMapping("/db/getById")
     @ResponseBody
     public Result<User> dbGet(){
@@ -49,4 +53,11 @@ public class SampleTestController {
 //        boolean set = redisService.set(UserKey.getById, "" + 1, user);
 //        return Result.success(set);
 //    }
+
+    @ResponseBody
+    @RequestMapping("/mq")
+    public Result<String> mq(){
+        mqSender.send("hello wangjiacheng");
+        return Result.success("hello world");
+    }
 }
