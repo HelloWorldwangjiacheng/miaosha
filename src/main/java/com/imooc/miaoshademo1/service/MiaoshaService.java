@@ -77,9 +77,9 @@ public class MiaoshaService {
         return redisService.exists(MiaoshaKey.isGoodsOver, ""+goodsId);
     }
 
-//    public void reset(List<GoodsVo> goodsList) {
-//        goodsService.resetStock(goodsList);
-//        orderService.deleteOrders();
-//    }
+    public void reset(List<GoodsVo> goodsList) {
+        goodsService.resetStock(goodsList);
+        orderService.deleteOrders();
+    }
 
 }

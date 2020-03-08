@@ -66,4 +66,10 @@ public class OrderService {
                 miaoshaOrder);
         return orderInfo;
     }
+
+
+    public void deleteOrders() {
+        orderDao.deleteOrders();
+        orderDao.deleteMiaoshaOrders();
+    }
 }

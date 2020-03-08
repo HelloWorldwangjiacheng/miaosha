@@ -6,6 +6,8 @@ import com.imooc.miaoshademo1.domain.User;
 import com.imooc.miaoshademo1.rabbitmq.MQSender;
 import com.imooc.miaoshademo1.rabbitmq.MiaoshaMessage;
 import com.imooc.miaoshademo1.redis.GoodsKey;
+import com.imooc.miaoshademo1.redis.MiaoshaKey;
+import com.imooc.miaoshademo1.redis.OrderKey;
 import com.imooc.miaoshademo1.redis.RedisService;
 import com.imooc.miaoshademo1.result.CodeMsg;
 import com.imooc.miaoshademo1.result.Result;
@@ -110,9 +112,9 @@ public class MiaoshaController implements InitializingBean {
 
     /**
      * 没有优化前：
-     * jmeter压迫测试 2000个用户 每个用户访问5次 一共100000次 QPS：630
+     * jmeter压迫测试 2000个用户 每个用户访问5次 一共100000次 QPS：217
      *
-     * 优化之后：
+     * 优化之后：409
      *
      * GET 和 POST有什么区别？
      * GET幂等，向服务端拿数据   POST向服务端提交数据
@@ -192,6 +194,22 @@ public class MiaoshaController implements InitializingBean {
          */
 
 
+    }
+
+
+    @RequestMapping(value="/reset", method=RequestMethod.GET)
+    @ResponseBody
+    public Result<Boolean> reset(Model model) {
+        List<GoodsVo> goodsList = goodsService.listGoodsVo();
+        for(GoodsVo goods : goodsList) {
+            goods.setStockCount(10);
+            redisService.set(GoodsKey.getMiaoshaGoodsStock, ""+goods.getId(), 10);
+            localOverMap.put(goods.getId(), false);
+        }
+        redisService.delete(OrderKey.getMiaoshaOrderByUidGid);
+        redisService.delete(MiaoshaKey.isGoodsOver);
+        miaoshaService.reset(goodsList);
+        return Result.success(true);
     }
 
 

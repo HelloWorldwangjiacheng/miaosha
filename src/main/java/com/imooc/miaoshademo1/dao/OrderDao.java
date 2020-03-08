@@ -51,4 +51,16 @@ public interface OrderDao {
          */
         @Select("select * from order_info where id = #{orderId}")
         public OrderInfo getOrderById(@Param("orderId") Long orderId);
+
+        /**
+         * 删除订单
+         */
+        @Delete("delete from order_info")
+        public void deleteOrders();
+
+        /**
+         * 删除秒杀订单
+         */
+        @Delete("delete from miaosha_order")
+        public void deleteMiaoshaOrders();
 }
