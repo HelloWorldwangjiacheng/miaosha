@@ -6,6 +6,8 @@ import com.imooc.miaoshademo1.domain.OrderInfo;
 import com.imooc.miaoshademo1.domain.User;
 import com.imooc.miaoshademo1.redis.MiaoshaKey;
 import com.imooc.miaoshademo1.redis.RedisService;
+import com.imooc.miaoshademo1.util.MD5Util;
+import com.imooc.miaoshademo1.util.UUIDUtil;
 import com.imooc.miaoshademo1.vo.GoodsVo;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -32,20 +34,21 @@ public class MiaoshaService {
 
     /**
      * 秒杀操作
+     *
      * @param user
      * @param goodsVo
      * @return
      */
     @Transactional
-    public OrderInfo miaosha(User user, GoodsVo goodsVo){
+    public OrderInfo miaosha(User user, GoodsVo goodsVo) {
         // 减库存 下订单 写入秒杀订单
         //1.减库存,因为减库存有可能会失败，所以用Boolean类型来判断
         boolean reduceSuccess = goodsService.reduceStock(goodsVo);
-        if (reduceSuccess){
+        if (reduceSuccess) {
             //2.之前成功减库存，下订单
             // 3.写入秒杀订单（2、3都是和Order有关，所以都放在OrderService中实现）
             return orderService.createOrder(user, goodsVo);
-        }else {
+        } else {
             setGoodsOver(goodsVo.getId());
             return null;
         }
@@ -56,30 +59,62 @@ public class MiaoshaService {
 
     public long getMiaoshaResult(Long userId, long goodsId) {
         MiaoshaOrder order = orderService.getOrderMiaoshaOrderByUserIdAndGoodsId(userId, goodsId);
-        if(order != null) {
+        if (order != null) {
             //秒杀成功
             return order.getOrderId();
-        }else {
+        } else {
             boolean isOver = getGoodsOver(goodsId);
-            if(isOver) {
+            if (isOver) {
                 return -1;
-            }else {
+            } else {
                 return 0;
             }
         }
     }
 
     private void setGoodsOver(Long goodsId) {
-        redisService.set(MiaoshaKey.isGoodsOver, ""+goodsId, true);
+        redisService.set(MiaoshaKey.isGoodsOver, "" + goodsId, true);
     }
 
     private boolean getGoodsOver(long goodsId) {
-        return redisService.exists(MiaoshaKey.isGoodsOver, ""+goodsId);
+        return redisService.exists(MiaoshaKey.isGoodsOver, "" + goodsId);
     }
 
     public void reset(List<GoodsVo> goodsList) {
         goodsService.resetStock(goodsList);
         orderService.deleteOrders();
+    }
+
+    /**
+     * 检查该路径合法性
+     *
+     * @param user
+     * @param goodsId
+     * @param path
+     * @return
+     */
+    public boolean checkPath(User user, long goodsId, String path) {
+        if (user == null || path == null) {
+            return false;
+        }
+        String pathOld = redisService.get(MiaoshaKey.getMiaoshaPath, "" + user.getId() + "_" + goodsId, String.class);
+        return path.equals(pathOld);
+    }
+
+    /**
+     * 生成秒杀接口路径
+     *
+     * @param user
+     * @param goodsId
+     * @return
+     */
+    public String createMiaoshaPath(User user, long goodsId) {
+        if (user == null || goodsId <= 0) {
+            return null;
+        }
+        String str = MD5Util.md5(UUIDUtil.uuid() + "123456");
+        redisService.set(MiaoshaKey.getMiaoshaPath, "" + user.getId() + "_" + goodsId, str);
+        return str;
     }
 
 }

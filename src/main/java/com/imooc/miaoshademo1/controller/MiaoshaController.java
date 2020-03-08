@@ -23,6 +23,7 @@ import org.springframework.ui.Model;
 import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.*;
 
+import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.util.HashMap;
 import java.util.List;
@@ -76,6 +77,26 @@ public class MiaoshaController implements InitializingBean {
     }
 
     /**
+     * 重置
+     * @param model
+     * @return
+     */
+    @RequestMapping(value="/reset", method=RequestMethod.GET)
+    @ResponseBody
+    public Result<Boolean> reset(Model model) {
+        List<GoodsVo> goodsList = goodsService.listGoodsVo();
+        for(GoodsVo goods : goodsList) {
+            goods.setStockCount(10);
+            redisService.set(GoodsKey.getMiaoshaGoodsStock, ""+goods.getId(), 10);
+            localOverMap.put(goods.getId(), false);
+        }
+        redisService.delete(OrderKey.getMiaoshaOrderByUidGid);
+        redisService.delete(MiaoshaKey.isGoodsOver);
+        miaoshaService.reset(goodsList);
+        return Result.success(true);
+    }
+
+    /**
      * orderId: 成功
      * -1 ：秒杀失败
      *  0 ： 排队中
@@ -126,13 +147,14 @@ public class MiaoshaController implements InitializingBean {
      * @param goodsId
      * @return
      */
-    @PostMapping(value="/do_miaosha")
+    @PostMapping(value="/{path}/do_miaosha")
     @ResponseBody
     public Result<Integer> miaosha(Model model,
-                                     HttpServletResponse response,
-                                     @CookieValue(value = UserService.COOKIE_NAME_TOKEN, required = false) String cookieToken,
-                                     @RequestParam(value = UserService.COOKIE_NAME_TOKEN, required = false) String paramToken,
-                                     @RequestParam("goodsId")Long goodsId)
+                                   HttpServletResponse response,
+                                   @CookieValue(value = UserService.COOKIE_NAME_TOKEN, required = false) String cookieToken,
+                                   @RequestParam(value = UserService.COOKIE_NAME_TOKEN, required = false) String paramToken,
+                                   @RequestParam("goodsId")Long goodsId,
+                                   @PathVariable("path") String path)
     {
         if (StringUtils.isEmpty(cookieToken) && StringUtils.isEmpty(paramToken)) {
             return Result.error(CodeMsg.SESSION_ERROR);
@@ -143,6 +165,12 @@ public class MiaoshaController implements InitializingBean {
 
         if(user == null) {
             return Result.error(CodeMsg.SESSION_ERROR);
+        }
+
+        //验证path
+        boolean check = miaoshaService.checkPath(user, goodsId, path);
+        if(!check){
+            return Result.error(CodeMsg.REQUEST_ILLEGAL);
         }
 
         //内存标记，减少redis的访问
@@ -172,7 +200,6 @@ public class MiaoshaController implements InitializingBean {
         // 0代表排队中
         return Result.success(0);
 
-
         /*
         //判断库存
         GoodsVo goods = goodsService.getGoodsVoByGoodsId(goodsId);
@@ -193,29 +220,56 @@ public class MiaoshaController implements InitializingBean {
 
          */
 
-
     }
 
-
-    @RequestMapping(value="/reset", method=RequestMethod.GET)
+    /**
+     * 得到秒杀接口的地址
+     * @param request
+     * @param response
+     * @param cookieToken
+     * @param paramToken
+     * @param goodsId
+     * @return
+     */
+//    @AccessLimit(seconds=5, maxCount=5, needLogin=true)
+    @GetMapping(value="/path")
     @ResponseBody
-    public Result<Boolean> reset(Model model) {
-        List<GoodsVo> goodsList = goodsService.listGoodsVo();
-        for(GoodsVo goods : goodsList) {
-            goods.setStockCount(10);
-            redisService.set(GoodsKey.getMiaoshaGoodsStock, ""+goods.getId(), 10);
-            localOverMap.put(goods.getId(), false);
+    public Result<String> getMiaoshaPath(HttpServletRequest request,
+                                         HttpServletResponse response,
+                                         @CookieValue(value = UserService.COOKIE_NAME_TOKEN, required = false) String cookieToken,
+                                         @RequestParam(value = UserService.COOKIE_NAME_TOKEN, required = false) String paramToken,
+                                         @RequestParam("goodsId") Long goodsId,
+//                                         @RequestParam(value="verifyCode", defaultValue="0")int verifyCode ,
+                                         Model model
+
+    ) {
+        if (StringUtils.isEmpty(cookieToken) && StringUtils.isEmpty(paramToken)) {
+            return Result.error(CodeMsg.SESSION_ERROR);
         }
-        redisService.delete(OrderKey.getMiaoshaOrderByUidGid);
-        redisService.delete(MiaoshaKey.isGoodsOver);
-        miaoshaService.reset(goodsList);
-        return Result.success(true);
+        String token = StringUtils.isEmpty(paramToken) ? cookieToken : paramToken;
+        User user = userService.getByToken(response, token);
+        model.addAttribute("user",user);
+
+        if(user == null) {
+            return Result.error(CodeMsg.SESSION_ERROR);
+        }
+//        boolean check = miaoshaService.checkVerifyCode(user, goodsId, verifyCode);
+//        if(!check) {
+//            return Result.error(CodeMsg.REQUEST_ILLEGAL);
+//        }
+        String path  =miaoshaService.createMiaoshaPath(user, goodsId);
+        return Result.success(path);
     }
 
-
-
-
-
+    /**
+     * 之前写的秒杀接口
+     * @param model
+     * @param cookieToken
+     * @param paramToken
+     * @param response
+     * @param goodsId
+     * @return
+     */
     @PostMapping("/doMiaosha")
     public String doMiaosha(Model model,
                             @CookieValue(value = UserService.COOKIE_NAME_TOKEN, required = false) String cookieToken,
