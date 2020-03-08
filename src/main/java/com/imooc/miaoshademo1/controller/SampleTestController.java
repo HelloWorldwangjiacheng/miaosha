@@ -54,31 +54,31 @@ public class SampleTestController {
 //        return Result.success(set);
 //    }
 
-    @ResponseBody
-    @RequestMapping("/mq")
-    public Result<String> mq(){
-        mqSender.send("hello wangjiacheng");
-        return Result.success("hello world");
-    }
-
-    @ResponseBody
-    @RequestMapping("/mq/topic")
-    public Result<String> mqTopic(){
-        mqSender.sendTopic("hello wangjiacheng");
-        return Result.success("hello world");
-    }
-
-    @ResponseBody
-    @RequestMapping("/mq/fanout")
-    public Result<String> mqFanout(){
-        mqSender.sendFanout("hello wangjiacheng");
-        return Result.success("hello world");
-    }
-
-    @ResponseBody
-    @RequestMapping("/mq/header")
-    public Result<String> mqHeader(){
-        mqSender.sendHeader("hello wangjiacheng");
-        return Result.success("hello world");
-    }
+//    @ResponseBody
+//    @RequestMapping("/mq")
+//    public Result<String> mq(){
+//        mqSender.send("hello wangjiacheng");
+//        return Result.success("hello world");
+//    }
+//
+//    @ResponseBody
+//    @RequestMapping("/mq/topic")
+//    public Result<String> mqTopic(){
+//        mqSender.sendTopic("hello wangjiacheng");
+//        return Result.success("hello world");
+//    }
+//
+//    @ResponseBody
+//    @RequestMapping("/mq/fanout")
+//    public Result<String> mqFanout(){
+//        mqSender.sendFanout("hello wangjiacheng");
+//        return Result.success("hello world");
+//    }
+//
+//    @ResponseBody
+//    @RequestMapping("/mq/header")
+//    public Result<String> mqHeader(){
+//        mqSender.sendHeader("hello wangjiacheng");
+//        return Result.success("hello world");
+//    }
 }

@@ -3,6 +3,9 @@ package com.imooc.miaoshademo1.controller;
 import com.imooc.miaoshademo1.domain.MiaoshaOrder;
 import com.imooc.miaoshademo1.domain.OrderInfo;
 import com.imooc.miaoshademo1.domain.User;
+import com.imooc.miaoshademo1.rabbitmq.MQSender;
+import com.imooc.miaoshademo1.rabbitmq.MiaoshaMessage;
+import com.imooc.miaoshademo1.redis.GoodsKey;
 import com.imooc.miaoshademo1.redis.RedisService;
 import com.imooc.miaoshademo1.result.CodeMsg;
 import com.imooc.miaoshademo1.result.Result;
@@ -11,6 +14,7 @@ import com.imooc.miaoshademo1.service.MiaoshaService;
 import com.imooc.miaoshademo1.service.OrderService;
 import com.imooc.miaoshademo1.service.UserService;
 import com.imooc.miaoshademo1.vo.GoodsVo;
+import org.springframework.beans.factory.InitializingBean;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -18,6 +22,9 @@ import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.*;
 
 import javax.servlet.http.HttpServletResponse;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 /**
  * @Author w1586
@@ -26,7 +33,7 @@ import javax.servlet.http.HttpServletResponse;
  */
 @Controller
 @RequestMapping("/miaosha")
-public class MiaoshaController {
+public class MiaoshaController implements InitializingBean {
     @Autowired
     UserService userService;
     @Autowired
@@ -40,6 +47,66 @@ public class MiaoshaController {
 
     @Autowired
     MiaoshaService miaoshaService;
+
+    @Autowired
+    MQSender mqSender;
+
+    private Map<Long, Boolean> localOverMap = new HashMap<>();
+
+
+    /**
+     * 系统初始化，也就是预加载
+     * @throws Exception
+     */
+    @Override
+    public void afterPropertiesSet() throws Exception {
+        List<GoodsVo> goodsVoList = goodsService.listGoodsVo();
+        if (goodsVoList == null){
+            return ;
+        }
+        //预加载商品数量到redis里面
+        for (GoodsVo goodsVo : goodsVoList){
+            redisService.set(GoodsKey.getMiaoshaGoodsStock, ""+goodsVo.getId(), goodsVo.getStockCount());
+            //内存标记
+            localOverMap.put(goodsVo.getId(), false);
+        }
+
+    }
+
+    /**
+     * orderId: 成功
+     * -1 ：秒杀失败
+     *  0 ： 排队中
+     * 库存不足
+     * @param model
+     * @param response
+     * @param cookieToken
+     * @param paramToken
+     * @param goodsId
+     * @return
+     */
+    @GetMapping(value="/result")
+    @ResponseBody
+    public Result<Long> getResult(Model model,
+                                   HttpServletResponse response,
+                                   @CookieValue(value = UserService.COOKIE_NAME_TOKEN, required = false) String cookieToken,
+                                   @RequestParam(value = UserService.COOKIE_NAME_TOKEN, required = false) String paramToken,
+                                   @RequestParam("goodsId")Long goodsId) {
+        if (StringUtils.isEmpty(cookieToken) && StringUtils.isEmpty(paramToken)) {
+            return Result.error(CodeMsg.SESSION_ERROR);
+        }
+        String token = StringUtils.isEmpty(paramToken) ? cookieToken : paramToken;
+        User user = userService.getByToken(response, token);
+        model.addAttribute("user", user);
+
+        if (user == null) {
+            return Result.error(CodeMsg.SESSION_ERROR);
+        }
+
+        Long result = miaoshaService.getMiaoshaResult(user.getId(), goodsId);
+
+        return Result.success(result);
+    }
 
     /**
      * 没有优化前：
@@ -57,12 +124,86 @@ public class MiaoshaController {
      * @param goodsId
      * @return
      */
+    @PostMapping(value="/do_miaosha")
+    @ResponseBody
+    public Result<Integer> miaosha(Model model,
+                                     HttpServletResponse response,
+                                     @CookieValue(value = UserService.COOKIE_NAME_TOKEN, required = false) String cookieToken,
+                                     @RequestParam(value = UserService.COOKIE_NAME_TOKEN, required = false) String paramToken,
+                                     @RequestParam("goodsId")Long goodsId)
+    {
+        if (StringUtils.isEmpty(cookieToken) && StringUtils.isEmpty(paramToken)) {
+            return Result.error(CodeMsg.SESSION_ERROR);
+        }
+        String token = StringUtils.isEmpty(paramToken) ? cookieToken : paramToken;
+        User user = userService.getByToken(response, token);
+        model.addAttribute("user", user);
+
+        if(user == null) {
+            return Result.error(CodeMsg.SESSION_ERROR);
+        }
+
+        //内存标记，减少redis的访问
+        Boolean over = localOverMap.get(goodsId);
+        if (over){
+            return  Result.error(CodeMsg.MIAO_SHA_OVER);
+        }
+
+        //预减库存
+        Long stock = redisService.decr(GoodsKey.getMiaoshaGoodsStock, "" + goodsId);
+        if (stock < 0){
+            localOverMap.put(goodsId, true);
+            return Result.error(CodeMsg.MIAO_SHA_OVER);
+        }
+
+        //判断是否秒杀到商品了
+        MiaoshaOrder order = orderService.getOrderMiaoshaOrderByUserIdAndGoodsId(user.getId(), goodsId);
+        if (order!=null){
+            return Result.error(CodeMsg.REPEAT_MIAOSHA);
+        }
+
+        //入队
+        MiaoshaMessage miaoshaMessage = new MiaoshaMessage();
+        miaoshaMessage.setGoodsId(goodsId);
+        miaoshaMessage.setUser(user);
+        mqSender.sendMiaoshaMessage(miaoshaMessage);
+        // 0代表排队中
+        return Result.success(0);
+
+
+        /*
+        //判断库存
+        GoodsVo goods = goodsService.getGoodsVoByGoodsId(goodsId);
+        //10个商品，req1 req2
+        int stock = goods.getStockCount();
+        if(stock <= 0) {
+            return Result.error(CodeMsg.MIAO_SHA_OVER);
+        }
+        //判断是否已经秒杀到了
+        MiaoshaOrder order = orderService.getOrderMiaoshaOrderByUserIdAndGoodsId(user.getId(), goodsId);
+        if(order != null) {
+            return Result.error(CodeMsg.REPEAT_MIAOSHA);
+        }
+        //减库存 下订单 写入秒杀订单
+        OrderInfo orderInfo = miaoshaService.miaosha(user, goods);
+        //把订单返回出去
+        return Result.success(orderInfo);
+
+         */
+
+
+    }
+
+
+
+
+
     @PostMapping("/doMiaosha")
     public String doMiaosha(Model model,
-                       @CookieValue(value = UserService.COOKIE_NAME_TOKEN, required = false) String cookieToken,
-                       @RequestParam(value = UserService.COOKIE_NAME_TOKEN, required = false) String paramToken,
-                       HttpServletResponse response,
-                       @RequestParam("goodsId") Long goodsId)
+                            @CookieValue(value = UserService.COOKIE_NAME_TOKEN, required = false) String cookieToken,
+                            @RequestParam(value = UserService.COOKIE_NAME_TOKEN, required = false) String paramToken,
+                            HttpServletResponse response,
+                            @RequestParam("goodsId") Long goodsId)
     {
         if (StringUtils.isEmpty(cookieToken) && StringUtils.isEmpty(paramToken)) {
             return "login";
@@ -100,39 +241,4 @@ public class MiaoshaController {
     }
 
 
-    @PostMapping(value="/do_miaosha")
-    @ResponseBody
-    public Result<OrderInfo> miaosha(Model model,
-                                     HttpServletResponse response,
-                                     @CookieValue(value = UserService.COOKIE_NAME_TOKEN, required = false) String cookieToken,
-                                     @RequestParam(value = UserService.COOKIE_NAME_TOKEN, required = false) String paramToken,
-                                     @RequestParam("goodsId")long goodsId)
-    {
-        if (StringUtils.isEmpty(cookieToken) && StringUtils.isEmpty(paramToken)) {
-            return Result.error(CodeMsg.SESSION_ERROR);
-        }
-        String token = StringUtils.isEmpty(paramToken) ? cookieToken : paramToken;
-        User user = userService.getByToken(response, token);
-        model.addAttribute("user", user);
-
-        if(user == null) {
-            return Result.error(CodeMsg.SESSION_ERROR);
-        }
-        //判断库存
-        GoodsVo goods = goodsService.getGoodsVoByGoodsId(goodsId);
-        //10个商品，req1 req2
-        int stock = goods.getStockCount();
-        if(stock <= 0) {
-            return Result.error(CodeMsg.MIAO_SHA_OVER);
-        }
-        //判断是否已经秒杀到了
-        MiaoshaOrder order = orderService.getOrderMiaoshaOrderByUserIdAndGoodsId(user.getId(), goodsId);
-        if(order != null) {
-            return Result.error(CodeMsg.REPEAT_MIAOSHA);
-        }
-        //减库存 下订单 写入秒杀订单
-        OrderInfo orderInfo = miaoshaService.miaosha(user, goods);
-        //把订单返回出去
-        return Result.success(orderInfo);
-    }
 }

@@ -48,4 +48,12 @@ public interface GoodsDao {
             "where goods_id = #{goodsId} and stock_count>0")
     public int reduceStock(MiaoshaGoods g);
 
+    /**
+     * 重置
+     * @param g
+     * @return
+     */
+    @Update("update miaosha_goods set stock_count = #{stockCount} where goods_id = #{goodsId}")
+    public int resetStock(MiaoshaGoods g);
+
 }
