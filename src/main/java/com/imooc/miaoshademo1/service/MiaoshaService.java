@@ -171,11 +171,12 @@ public class MiaoshaService {
      * @param verifyCode
      * @return
      */
-    public boolean checkVerifyCode(User user, long goodsId, int verifyCode) {
-        if(user == null || goodsId <=0) {
+    public boolean checkVerifyCode(User user, Long goodsId, Integer verifyCode) {
+        if(user == null || goodsId <=0 || verifyCode == null) {
             return false;
         }
-        Integer codeOld = redisService.get(MiaoshaKey.getMiaoshaVerifyCode, user.getId()+","+goodsId, Integer.class);
+        Integer codeOld =
+                redisService.get(MiaoshaKey.getMiaoshaVerifyCode, user.getId()+","+goodsId, Integer.class);
         if(codeOld == null || codeOld - verifyCode != 0 ) {
             return false;
         }

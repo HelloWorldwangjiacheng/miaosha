@@ -31,7 +31,15 @@ public class AccessInterceptor  extends HandlerInterceptorAdapter{
 	
 	@Autowired
 	RedisService redisService;
-	
+
+    /**
+     * 在方法进入之前做一些拦截
+     * @param request
+     * @param response
+     * @param handler
+     * @return
+     * @throws Exception
+     */
 	@Override
 	public boolean preHandle(HttpServletRequest request,
 							 HttpServletResponse response,
@@ -45,10 +53,12 @@ public class AccessInterceptor  extends HandlerInterceptorAdapter{
 			if(accessLimit == null) {
 				return true;
 			}
+
 			int seconds = accessLimit.seconds();
 			int maxCount = accessLimit.maxCount();
 			boolean needLogin = accessLimit.needLogin();
 			String key = request.getRequestURI();
+
 			if(needLogin) {
 				if(user == null) {
 					render(response, CodeMsg.SESSION_ERROR);
@@ -72,7 +82,8 @@ public class AccessInterceptor  extends HandlerInterceptorAdapter{
 		return true;
 	}
 	
-	private void render(HttpServletResponse response, CodeMsg cm)throws Exception {
+	private void render(HttpServletResponse response, CodeMsg cm)
+            throws Exception {
 		response.setContentType("application/json;charset=UTF-8");
 		OutputStream out = response.getOutputStream();
 		String str  = JSON.toJSONString(Result.error(cm));
@@ -92,7 +103,7 @@ public class AccessInterceptor  extends HandlerInterceptorAdapter{
 	}
 	
 	private String getCookieValue(HttpServletRequest request, String cookieName) {
-		Cookie[]  cookies = request.getCookies();
+		Cookie[] cookies = request.getCookies();
 		if(cookies == null || cookies.length <= 0){
 			return null;
 		}

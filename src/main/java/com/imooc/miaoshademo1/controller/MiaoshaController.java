@@ -231,9 +231,10 @@ public class MiaoshaController implements InitializingBean {
      * @param paramToken
      * @param goodsId
      * @param verifyCode
+     * @AccessLimit 五秒钟之内最多只能访问5次
      * @return
      */
-//    @AccessLimit(seconds=5, maxCount=5, needLogin=true)
+    @AccessLimit(seconds=5, maxCount=5, needLogin=true)
     @GetMapping(value="/path")
     @ResponseBody
     public Result<String> getMiaoshaPath(HttpServletRequest request,
@@ -241,10 +242,11 @@ public class MiaoshaController implements InitializingBean {
                                          @CookieValue(value = UserService.COOKIE_NAME_TOKEN, required = false) String cookieToken,
                                          @RequestParam(value = UserService.COOKIE_NAME_TOKEN, required = false) String paramToken,
                                          @RequestParam("goodsId") Long goodsId,
-                                         @RequestParam(value="verifyCode", defaultValue="0")int verifyCode ,
+                                         @RequestParam(value="verifyCode") Integer verifyCode ,
+//                                         User user1,
                                          Model model
-
     ) {
+
         if (StringUtils.isEmpty(cookieToken) && StringUtils.isEmpty(paramToken)) {
             return Result.error(CodeMsg.SESSION_ERROR);
         }
@@ -256,23 +258,24 @@ public class MiaoshaController implements InitializingBean {
             return Result.error(CodeMsg.SESSION_ERROR);
         }
 
-        //查询访问次数
-        String uri = request.getRequestURI();
-        String key = uri + "_" + user.getId();
-        Integer count = redisService.get(AccessKey.access, key, Integer.class);
-        if (count == null){
-            redisService.set(AccessKey.access, key, 1);
-        }else if (count < 5){
-            redisService.incr(AccessKey.access, key);
-        }else {
-            return Result.error(CodeMsg.ACCESS_LIMIT_REACHED);
-        }
+//        //查询访问次数
+//        String uri = request.getRequestURI();
+//        String key = uri + "_" + user.getId();
+//        Integer count = redisService.get(AccessKey.access, key, Integer.class);
+//        if (count == null){
+//            redisService.set(AccessKey.access, key, 1);
+//        }else if (count < 5){
+//            redisService.incr(AccessKey.access, key);
+//        }else {
+//            return Result.error(CodeMsg.ACCESS_LIMIT_REACHED);
+//        }
 
         boolean check = miaoshaService.checkVerifyCode(user, goodsId, verifyCode);
         if(!check) {
             return Result.error(CodeMsg.REQUEST_ILLEGAL);
         }
-        String path  =miaoshaService.createMiaoshaPath(user, goodsId);
+
+        String path  = miaoshaService.createMiaoshaPath(user, goodsId);
         return Result.success(path);
     }
 
