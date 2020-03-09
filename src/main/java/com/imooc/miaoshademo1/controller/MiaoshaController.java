@@ -1,14 +1,12 @@
 package com.imooc.miaoshademo1.controller;
 
+import com.imooc.miaoshademo1.access.AccessLimit;
 import com.imooc.miaoshademo1.domain.MiaoshaOrder;
 import com.imooc.miaoshademo1.domain.OrderInfo;
 import com.imooc.miaoshademo1.domain.User;
 import com.imooc.miaoshademo1.rabbitmq.MQSender;
 import com.imooc.miaoshademo1.rabbitmq.MiaoshaMessage;
-import com.imooc.miaoshademo1.redis.GoodsKey;
-import com.imooc.miaoshademo1.redis.MiaoshaKey;
-import com.imooc.miaoshademo1.redis.OrderKey;
-import com.imooc.miaoshademo1.redis.RedisService;
+import com.imooc.miaoshademo1.redis.*;
 import com.imooc.miaoshademo1.result.CodeMsg;
 import com.imooc.miaoshademo1.result.Result;
 import com.imooc.miaoshademo1.service.GoodsService;
@@ -257,6 +255,19 @@ public class MiaoshaController implements InitializingBean {
         if(user == null) {
             return Result.error(CodeMsg.SESSION_ERROR);
         }
+
+        //查询访问次数
+        String uri = request.getRequestURI();
+        String key = uri + "_" + user.getId();
+        Integer count = redisService.get(AccessKey.access, key, Integer.class);
+        if (count == null){
+            redisService.set(AccessKey.access, key, 1);
+        }else if (count < 5){
+            redisService.incr(AccessKey.access, key);
+        }else {
+            return Result.error(CodeMsg.ACCESS_LIMIT_REACHED);
+        }
+
         boolean check = miaoshaService.checkVerifyCode(user, goodsId, verifyCode);
         if(!check) {
             return Result.error(CodeMsg.REQUEST_ILLEGAL);
